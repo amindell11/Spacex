@@ -35,12 +35,20 @@ function y = lpf_decimate(x, lpf_cfg, dec_cfg)
 end
 
 function [up, down] = matched_filter(x, mf_cfg)
-    up   = filter(mf_cfg.up.h,   1, x);
-    down = filter(mf_cfg.down.h, 1, x);
+    up   = bank_mf(x, mf_cfg.up.h);
+    down = bank_mf(x, mf_cfg.down.h);
+end
+
+function y = bank_mf(x, H)
+    y = zeros(size(x));
+    for k = 1:size(H, 2)
+        yk = filter(H(:,k), 1, x);
+        y = max(y, abs(yk).^2);
+    end
 end
 
 function detections = detect(corr, sub_cfg, fs_dec, template)
-    mag_sq = abs(corr).^2;
+    mag_sq = corr;
     valid_start = sub_cfg.total_delay_n + 1;
     valid_stop  = length(corr) - sub_cfg.N_tap + 1 + sub_cfg.total_delay_n;
     noise_est = median(mag_sq(valid_start:min(valid_stop, end))) / log(2);

@@ -5,6 +5,7 @@ function dut = cfg_dut(spec)
     f_pass = 100e3; % passband for AA filter - set safely above the signal band at 60kHz
     P_fa = 1e-4; % target false-alarm probability per PRI
     K = 0; % samples padding before / after extracted pulses
+    f_offsets = -10e3:2.5e3:10e3; % doppler bins for MF bank
     
     lpf = build_lpf();
     dec = build_dec();
@@ -33,8 +34,8 @@ function dut = cfg_dut(spec)
 
     function mf = build_mf()
         mf.fs_dec = fs_dec;
-        mf.up   = make_template(spec, 'up',   fs_dec);
-        mf.down = make_template(spec, 'down', fs_dec);
+        mf.up   = make_template(spec, 'up',   fs_dec, f_offsets);
+        mf.down = make_template(spec, 'down', fs_dec, f_offsets);
     end
 
     function det = build_det()
@@ -73,11 +74,16 @@ function h = generate_lpf(fs, fc, N)
     h = h / sum(h);
 end
 
-function tp = make_template(spec, name, fs_dec)
+function tp = make_template(spec, name, fs_dec, f_offsets)
     wf = spec.make_chirp(name, fs_dec);
     tp.wf = wf;
-    tp.h = conj(flip(wf.iq));
-    tp.h = tp.h / sqrt(sum(abs(tp.h).^2));
+    t = (0:wf.N-1).' / fs_dec;
+    tp.h = zeros(wf.N, numel(f_offsets));
+    for k = 1:numel(f_offsets)
+        tp.h(:,k) = conj(flip(wf.iq .* exp(1j*2*pi*f_offsets(k)*t)));
+    end
+    tp.h = tp.h / sqrt(sum(abs(tp.h(:,1)).^2));
+    tp.f_offsets = f_offsets;
     tp.delay_n = (wf.N - 1);
     tp.delay_t = tp.delay_n / fs_dec;
     tp.N_tap = wf.N;
