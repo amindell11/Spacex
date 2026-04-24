@@ -58,8 +58,8 @@ function dut = cfg_dut(spec)
         det.down.N_tap = mf.down.N_tap;
         det.down.min_separation = round(0.5 * samples_per_PRI_dec);
 
-        det.arb.window = max(mf.up.N_tap, mf.down.N_tap);
-        det.arb.ratio = 4;
+        det.arb.window = round(0.5 * samples_per_PRI_dec);
+        det.arb.ratio = 2;
     end
 
     function ext = build_ext()
