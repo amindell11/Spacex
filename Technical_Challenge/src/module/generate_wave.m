@@ -19,8 +19,8 @@ function schedule = build_pri_schedule(cfg, n_intervals, wf_up)
         wf = cfg.wf(mod(i + wf_up, 2) + 1);
         pulses(i).wf = wf;
         pulses(i).template = wf.name;
-        pulses(i).sof_sample = randi(cfg.pri_samples - wf.N + 1) + (i-1) * cfg.pri_samples;
-        pulses(i).sof_time = (pulses(i).sof_sample - 1) / cfg.fs;
+        pulses(i).sof_idx = randi(cfg.pri_samples - wf.N + 1) + (i-1) * cfg.pri_samples;
+        pulses(i).sof_time = (pulses(i).sof_idx - 1) / cfg.fs;
     end
 
     schedule.pulses = pulses;
@@ -34,7 +34,7 @@ function signal = generate_signal(schedule)
     signal = complex(zeros(schedule.N_samples, 1));
 
     for i = 1 : numel(schedule.pulses)
-        sof = schedule.pulses(i).sof_sample;
+        sof = schedule.pulses(i).sof_idx;
         wf_iq = schedule.pulses(i).wf.iq;
         pw = length(wf_iq);
         signal(sof : sof + pw - 1) = signal(sof : sof + pw - 1) + wf_iq;
@@ -56,5 +56,5 @@ function rx = channel(signal, N, SNR_dB)
 end
 
 function p = empty_pulse(wf_template)
-    p = struct('sof_sample', 0, 'template', '', 'wf', wf_template);
+    p = struct('sof_idx', 0, 'template', '', 'wf', wf_template);
 end
