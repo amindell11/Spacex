@@ -2,7 +2,7 @@
 % cfg: system config
 % SNR_dB: for added channel noise
 % returns generated wave, clean signal, and pulse schedule for debugging
-function [wave, signal, schedule] = generate_wave(spec, cfg)
+function [wave, signal, schedule] = generate_wave(spec, cfg, lpf)
     tx_up = spec.make_chirp('up', spec.fs);
     tx_down = spec.make_chirp('down', spec.fs);
     wf = [tx_up, tx_down];
@@ -10,7 +10,8 @@ function [wave, signal, schedule] = generate_wave(spec, cfg)
     signal = generate_signal(schedule);
     t = (0:length(signal)-1).' / spec.fs;
     signal = signal .* exp(1j*2*pi*cfg.f_offset_Hz*t);
-    wave = channel(signal, length(signal), cfg.SNR_dB);
+    lpf_noise_gain = sum(abs(lpf.h).^2);
+    wave = channel(signal, length(signal), cfg.SNR_dB, lpf_noise_gain);
 end
 
 % Build a schedule of pulses at configured PRF
@@ -51,8 +52,8 @@ end
 % assumes unity signal has unity gain
 % N: redundant signal length for convenience
 % returns noisy rx signal vector
-function rx = channel(signal, N, SNR_dB)
-    noise_power = 10 ^ (-SNR_dB/10);
+function rx = channel(signal, N, SNR_dB, lpf_noise_gain)
+    noise_power = 10 ^ (-SNR_dB/10) / lpf_noise_gain;
     noise = (randn(N, 1) + 1j * randn(N,1)) * sqrt(noise_power/2);
     rx = signal + noise;
 
