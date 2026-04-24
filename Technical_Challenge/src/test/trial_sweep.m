@@ -1,7 +1,11 @@
-function [outs, aggregates] = trial_repeat(spec, dut, sim,tests, n_trials, n_waves)
-    outs = repmat(struct('wave', [], 'signal', [], 'schedule', [], 'detections', [], 'debug', [], 'errs', []), 1, n_trials);
-    for i = 1:n_trials
-        outs(i) = trial_run(spec, dut, sim, tests);
+function results = trial_sweep(cfgs, setter, values, n_trials)
+    n = numel(values);
+    results = repmat(struct('value', [], 'aggregates', [], 'outs', []), 1, n);
+    for i = 1:n
+        cfgs_i = setter(cfgs, values(i));
+        [outs, agg] = trial_repeat(cfgs_i, n_trials);
+        results(i).value = values(i);
+        results(i).aggregates = agg;
+        results(i).outs = outs;
     end
-    aggregates = aggregate_trials(outs);
 end

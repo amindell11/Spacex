@@ -21,7 +21,7 @@ end
 
 function detections = detect(corr, sub_cfg, fs_dec, template)
     mag_sq = abs(corr).^2;
-    above = mag_sq > sub_cfg.threshold;
+    above = mag_sq > sub_cfg.thresh;
 
     edges = diff([0; above(:); 0]);
     starts = find(edges == +1);

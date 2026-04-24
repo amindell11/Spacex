@@ -2,16 +2,32 @@ spec = cfg_spec();
 sim = cfg_sim();
 dut = cfg_dut(spec);
 tests = cfg_tests();
+cfgs = struct('spec', spec, 'dut', dut, 'sim', sim, 'tests', tests);
 
 fs = spec.fs;
 fs_dec = dut.dec.fs_dec;
 
 fprintf('Running tests...\n');
-[outs, agg] = trial_repeat(spec, dut, sim, tests, 10);
+[outs, agg] = trial_repeat(cfgs, 10);
 fprintf('Matched: %d / %d\n', agg.ma_errs.total_pairs, agg.ma_errs.total_truth);
 fprintf('Miss rate: %.2f%%\n', agg.ma_errs.missed_rate * 100);
 fprintf('False alarm rate: %.2f%%\n', agg.ma_errs.fa_rate * 100);
 out = outs(1);
+
+fprintf('Running sweep...\n');
+ setter = @(c, v) set_nested(c, {'sim','SNR_dB'}, v);
+ results = trial_sweep(cfgs, setter, linspace(-20, 20, 8), 10);
+figure;
+hold on; grid on;
+
+miss = arrayfun(@(r) r.aggregates.ma_errs.missed_rate, results);
+fa = arrayfun(@(r) r.aggregates.ma_errs.fa_rate, results);
+plot([results.value], miss*100, 'o-');plot([results.value], fa*100, 's-');
+
+xlabel('SNR (dB)');
+ylabel('Error Rate (%)');
+legend('Missed Detections', 'False Alarms');
+title('Error Rates vs SNR');
 
 figure;
 hold on; grid on;
