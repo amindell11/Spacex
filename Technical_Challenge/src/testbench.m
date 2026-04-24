@@ -1,12 +1,14 @@
 spec = cfg_spec();
 sim = cfg_sim();
 dut = cfg_dut(spec);
+tests = cfg_tests();
+
 fs = spec.fs;
 fs_dec = dut.dec.fs_dec;
 
 [model.wave, model.signal, model.schedule] = run_sim(spec, sim);
 [detections, dbg] = run_dut(model.wave, dut);
-
+run_tests(model.schedule.pulses, detections, tests.tol);
 
 hold on; grid on;
 plot_wave(model.wave, fs);

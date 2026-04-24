@@ -4,6 +4,8 @@ function [detections, dbg] = run_dut(wave, cfg)
     dets_up   = detect(dbg.corr_up,   cfg.det.up,   cfg.det.fs_dec, 'up');
     dets_down = detect(dbg.corr_down, cfg.det.down, cfg.det.fs_dec, 'down');
     detections = [dets_up; dets_down];
+    [~, order] = sort([detections.sof_time]);
+    detections = detections(order);
     detections = extract_pulses(dbg.decim, detections, cfg.ext);
 end
 
