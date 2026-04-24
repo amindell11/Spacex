@@ -45,16 +45,18 @@ function lpf = lpf_config(fs, f_pass, fs_dec)
     lpf.fc = f_pass + df/2;
     lpf.N = 2 * round(1.65/(df/fs)) + 1;
     lpf.h = generate_lpf(fs, lpf.fc, lpf.N);
-    lpf.group_delay_t = (lpf.N - 1) / (2 * fs);
+    lpf.delay_t = (lpf.N - 1) / (2 * fs);
 end
 
 function mf = mf_config(in, dec)
-    fs_dec = dec.fs_dec;
-    mf.wf_up = generate_chirp('up (decimated)', in.T_up, in.f0, in.f1, fs_dec);
-    mf.wf_down = generate_chirp('down (decimated)', in.T_down, in.f1, in.f0, fs_dec);
-    mf.h_up = generate_template(mf.wf_up.iq);
-    mf.h_down = generate_template(mf.wf_down.iq);
+    mf.fs_dec = dec.fs_dec;
+    mf.up.wf = generate_chirp('up (decimated)', in.T_up, in.f0, in.f1, mf.fs_dec);
+    mf.up.h = generate_template(mf.up.wf.iq);
+    mf.up.delay_t = (mf.up.wf.N - 1) / mf.fs_dec;
 
+    mf.down.wf = generate_chirp('down (decimated)', in.T_down, in.f1, in.f0, mf.fs_dec);
+    mf.down.h = generate_template(mf.down.wf.iq);
+    mf.down.delay_t = (mf.down.wf.N - 1) / mf.fs_dec;
 end
 
 function h = generate_lpf(fs, fc, N)
