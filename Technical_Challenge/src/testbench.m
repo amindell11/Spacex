@@ -16,18 +16,17 @@ out = outs(1);
 
 fprintf('Running sweep...\n');
  setter = @(c, v) set_nested(c, {'sim','SNR_dB'}, v);
- results = trial_sweep(cfgs, setter, linspace(-20, 20, 8), 10);
-figure;
-hold on; grid on;
+ results = trial_sweep(cfgs, setter, linspace(50, -50, 200), 10);
 
+hold on; grid on;
 miss = arrayfun(@(r) r.aggregates.ma_errs.missed_rate, results);
 fa = arrayfun(@(r) r.aggregates.ma_errs.fa_rate, results);
 plot([results.value], miss*100, 'o-');plot([results.value], fa*100, 's-');
 
 xlabel('SNR (dB)');
 ylabel('Error Rate (%)');
-legend('Missed Detections', 'False Alarms');
 title('Error Rates vs SNR');
+legend('Missed Detections', 'False Alarms');
 
 figure;
 hold on; grid on;
@@ -35,12 +34,20 @@ plot_wave(out.wave, fs);
 plot_wave(out.signal, fs);
 plot_sofs(out.schedule.pulses, fs);
 ylim([-1.5, 1.5]);
+xlabel('Time (ms)');
+ylabel('Amplitude');
+title('Input Signal and Scheduled Pulses');
+legend('Input Wave', 'Original Signal', 'Scheduled Pulses');
 
 figure;
 hold on; grid on;
 plot_wave(out.signal, fs);
 plot_wave(out.debug.decim, fs_dec, -dut.lpf.delay_t);
 ylim([-1.5, 1.5]);
+xlabel('Time (ms)');
+ylabel('Amplitude');
+title('Decimated Signal and LPF Delay');
+legend('Original Signal', 'Decimated Signal (Shifted)');
 
 figure;
 hold on; grid on;
@@ -48,11 +55,19 @@ plot_abs(out.debug.corr_up, fs_dec, -dut.lpf.delay_t - dut.mf.up.delay_t);
 plot_abs(out.debug.corr_down, fs_dec, -dut.lpf.delay_t - dut.mf.down.delay_t);
 plot_sofs(out.detections, fs_dec);
 plot_sofs(out.schedule.pulses, fs,'magenta--');
+xlabel('Time (ms)');
+ylabel('Correlation Magnitude');
+title('Matched Filter Outputs and Detections');
+legend('Up Sweep Correlation', 'Down Sweep Correlation', 'Detections', 'Scheduled Pulses');
 
 figure;
 hold on; grid on;
 plot_wave(out.detections(1).iq, fs_dec, -dut.ext.K / fs_dec);
 plot_wave(dut.mf.up.wf.iq, fs_dec);
+xlabel('Time (ms)');
+ylabel('Amplitude');
+title('First Detected Pulse vs Input');
+legend('Detected Pulse', 'Input Pulse');
 
 function plot_wave(wave, fs, t_shift)
     if nargin < 3

@@ -21,11 +21,21 @@ end
 
 function detections = detect(corr, sub_cfg, fs_dec, template)
     mag_sq = abs(corr).^2;
+    valid_start = sub_cfg.total_delay_n + 1;
+    valid_stop  = length(corr) - sub_cfg.N_tap + 1 + sub_cfg.total_delay_n;
     above = mag_sq > sub_cfg.thresh;
+    above([1:valid_start-1, valid_stop+1:end]) = false;
 
     edges = diff([0; above(:); 0]);
     starts = find(edges == +1);
     stops  = find(edges == -1) - 1 ;
+
+    if numel(starts) > 1
+        gaps = starts(2:end) - stops(1:end-1) - 1;
+        merge = gaps <= sub_cfg.min_separation;
+        starts = starts([true; ~merge]);
+        stops  = stops([~merge; true]);
+    end
 
     detections = repmat(struct('sof_idx',0,'sof_time',0,'peak_mag',0,'template','','N_tap',0), numel(starts), 1);
     for i = 1:length(starts)
@@ -45,6 +55,10 @@ function detections = extract_pulses(x, detections, ext_cfg)
         sof_idx = detections(i).sof_idx;
         start = sof_idx - ext_cfg.K;
         stop = sof_idx + detections(i).N_tap - 1 + ext_cfg.K;
-        detections(i).iq = x(start:stop);
+        if start >= 1 && stop <= length(x)
+            detections(i).iq = x(start:stop);
+        else
+            detections(i).iq = [];
+        end
     end
 end

@@ -1,11 +1,10 @@
 function dut = cfg_dut(spec)
     %SYSTEM PARAMS
     fs = spec.fs;
-    fs_dec = 1e6; % decimated sample rate
+    fs_dec = 500e3; % decimated sample rate
     f_pass = 100e3; % passband for AA filter - set safely above the signal band at 60kHz
     thresh_up = 40; % detector threshold for up sweeps
     thresh_down = 40; % detector threshold for up sweeps
-    min_separation = 0; % for region grouping
     K = 0; % samples padding before / after extracted pulses
     
     lpf = build_lpf();
@@ -41,17 +40,18 @@ function dut = cfg_dut(spec)
 
     function det = build_det()
         det.fs_dec = fs_dec;
-        det.min_separation = min_separation;
 
         det.up.thresh = thresh_up;
         det.up.total_delay_n = mf.up.delay_n + round(lpf.delay_n / dec.D);
         det.up.total_delay_t = mf.up.delay_t + lpf.delay_t;
         det.up.N_tap = mf.up.N_tap;
+        det.up.min_separation = round(0.1 * det.up.N_tap) ;
 
         det.down.thresh = thresh_down;
         det.down.total_delay_n = mf.down.delay_n + round(lpf.delay_n / dec.D);
         det.down.total_delay_t = mf.down.delay_t + lpf.delay_t;
         det.down.N_tap = mf.down.N_tap;
+        det.down.min_separation = round(0.1 * det.down.N_tap) ; 
     end
 
     function ext = build_ext()
