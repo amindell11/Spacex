@@ -3,8 +3,7 @@ function dut = cfg_dut(spec)
     fs = spec.fs;
     fs_dec = 500e3; % decimated sample rate
     f_pass = 100e3; % passband for AA filter - set safely above the signal band at 60kHz
-    thresh_up = 40; % detector threshold for up sweeps
-    thresh_down = 40; % detector threshold for up sweeps
+    P_fa = 1e-4; % target false-alarm probability per PRI
     K = 0; % samples padding before / after extracted pulses
     
     lpf = build_lpf();
@@ -40,18 +39,23 @@ function dut = cfg_dut(spec)
 
     function det = build_det()
         det.fs_dec = fs_dec;
+        samples_per_PRI_dec = spec.pri_samples / dec.D;
+        K_thresh = -log(P_fa / samples_per_PRI_dec);
 
-        det.up.thresh = thresh_up;
+        det.up.K = K_thresh;
         det.up.total_delay_n = mf.up.delay_n + round(lpf.delay_n / dec.D);
         det.up.total_delay_t = mf.up.delay_t + lpf.delay_t;
         det.up.N_tap = mf.up.N_tap;
-        det.up.min_separation = round(0.1 * det.up.N_tap) ;
+        det.up.min_separation = round(0.5 * samples_per_PRI_dec);
 
-        det.down.thresh = thresh_down;
+        det.down.K = K_thresh;
         det.down.total_delay_n = mf.down.delay_n + round(lpf.delay_n / dec.D);
         det.down.total_delay_t = mf.down.delay_t + lpf.delay_t;
         det.down.N_tap = mf.down.N_tap;
-        det.down.min_separation = round(0.1 * det.down.N_tap) ; 
+        det.down.min_separation = round(0.5 * samples_per_PRI_dec);
+
+        det.arb.window = max(mf.up.N_tap, mf.down.N_tap);
+        det.arb.ratio = 4;
     end
 
     function ext = build_ext()

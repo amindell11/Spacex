@@ -6,7 +6,27 @@ function [detections, dbg] = run_dut(wave, cfg)
     detections = [dets_up; dets_down];
     [~, order] = sort([detections.sof_time]);
     detections = detections(order);
+    detections = arbitrate(detections, cfg.det.arb);
     detections = extract_pulses(dbg.decim, detections, cfg.ext);
+end
+
+function dets = arbitrate(dets, arb_cfg)
+    if length(dets) <= 1, return; end
+    keep = true(length(dets), 1);
+    for i = 1:length(dets)-1
+        if ~keep(i), continue; end
+        for j = i+1:length(dets)
+            if ~keep(j), continue; end
+            if dets(j).sof_idx - dets(i).sof_idx > arb_cfg.window, break; end
+            if dets(i).peak_mag >= arb_cfg.ratio * dets(j).peak_mag
+                keep(j) = false;
+            elseif dets(j).peak_mag >= arb_cfg.ratio * dets(i).peak_mag
+                keep(i) = false;
+                break;
+            end
+        end
+    end
+    dets = dets(keep);
 end
 
 function y = lpf_decimate(x, lpf_cfg, dec_cfg)
@@ -23,7 +43,9 @@ function detections = detect(corr, sub_cfg, fs_dec, template)
     mag_sq = abs(corr).^2;
     valid_start = sub_cfg.total_delay_n + 1;
     valid_stop  = length(corr) - sub_cfg.N_tap + 1 + sub_cfg.total_delay_n;
-    above = mag_sq > sub_cfg.thresh;
+    noise_est = median(mag_sq(valid_start:min(valid_stop, end))) / log(2);
+    thresh = sub_cfg.K * noise_est;
+    above = mag_sq > thresh;
     above([1:valid_start-1, valid_stop+1:end]) = false;
 
     edges = diff([0; above(:); 0]);
