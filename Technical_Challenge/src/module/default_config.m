@@ -8,18 +8,22 @@ function cfg = default_config()
     f1 = 60e3;
 
 %SYSTEM PARAMS
-    fs_dec = 500e3; %
+    fs_dec = 500e3; % decimated sample rate
     f_pass = 100e3; % passband for AA filter - set safely above the signal band at 60kHz
+    threshold_up; % detector threshold for up sweeps
+    threshold_down; % detector threshold for up sweeps
+    min_separation; % for region grouping
 
 %Load into cfg structs
     cfg.fs = fs;
-    cfg.in = in_config(fs, prf, T_up, T_down, f0, f1);
-    cfg.dec = decim_config(fs, fs_dec);
-    cfg.lpf = lpf_config(fs, f_pass, fs_dec);
-    cfg.mf = mf_config(cfg.in, cfg.dec);
+    cfg.in = input_config(fs, prf, T_up, T_down, f0, f1);
+    cfg.lpf = lowpass_config(fs, f_pass, fs_dec);
+    cfg.dec = decimator_config(fs, fs_dec);
+    cfg.mf = matched_filter_config(T_up, T_down, f0, f1, fs_dec);
+    cfg.det = detector_config(up_threshold, down_threshold, mf.up.M, mf.down.M, min_separation);
 end
 
-function in = in_config(fs, prf, T_up, T_down, f0, f1)
+function in = input_config(fs, prf, T_up, T_down, f0, f1)
     in.fs = fs;
     in.prf = prf;
     in.f0 = f0;
@@ -33,12 +37,7 @@ function in = in_config(fs, prf, T_up, T_down, f0, f1)
     in.wf(2) = generate_chirp('down', T_down, f1, f0, fs);
 end
 
-function dec = decim_config(fs, fs_dec)
-    dec.fs_dec = fs_dec;
-    dec.D = fs / fs_dec;
-end
-
-function lpf = lpf_config(fs, f_pass, fs_dec)
+function lpf = lowpass_config(fs, f_pass, fs_dec)
     df = (fs_dec /2) - f_pass;
     lpf.fs = fs;
     lpf.df = df;
@@ -48,15 +47,33 @@ function lpf = lpf_config(fs, f_pass, fs_dec)
     lpf.delay_t = (lpf.N - 1) / (2 * fs);
 end
 
-function mf = mf_config(in, dec)
-    mf.fs_dec = dec.fs_dec;
-    mf.up.wf = generate_chirp('up (decimated)', in.T_up, in.f0, in.f1, mf.fs_dec);
-    mf.up.h = generate_template(mf.up.wf.iq);
-    mf.up.delay_t = (mf.up.wf.N - 1) / mf.fs_dec;
+function dec = decimator_config(fs, fs_dec)
+    dec.fs_dec = fs_dec;
+    dec.D = fs / fs_dec;T_up, T_down, f0, f1
+end
 
-    mf.down.wf = generate_chirp('down (decimated)', in.T_down, in.f1, in.f0, mf.fs_dec);
+
+function mf = matched_filter_config(T_up, T_down, f0, f1, fs_dec)
+    mf.fs_dec = fs_dec;
+    mf.up.wf = generate_chirp('up (decimated)', T_up, f0, f1, fs_dec);
+    mf.up.h = generate_template(mf.up.wf.iq);
+    mf.up.M = mf.up.wf.N;
+    mf.up.delay_t = (mf.up.M - 1) / fs_dec;
+
+    mf.down.wf = generate_chirp('down (decimated)', T_down, f1, f0, fs_dec);
     mf.down.h = generate_template(mf.down.wf.iq);
-    mf.down.delay_t = (mf.down.wf.N - 1) / mf.fs_dec;
+    mf.down.M = mf.down.wf.N;
+    mf.down.delay_t = (mf.down.M - 1) / fs_dec;
+end
+
+function det = detector_config(up_threshold, down_threshold, up_M, down_M, min_separation)
+    det.up.threshold = up_threshold;
+    det.up.M = up_M;
+
+    det.down.threshold = down_threshold;
+    det.down.M = down_M;
+
+    det.min_separation = min_separation;
 end
 
 function h = generate_lpf(fs, fc, N)
