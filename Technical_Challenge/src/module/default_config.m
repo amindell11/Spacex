@@ -45,7 +45,7 @@ function lpf = lpf_config(fs, f_pass, fs_dec)
     lpf.fc = f_pass + df/2;
     lpf.N = 2 * round(1.65/(df/fs)) + 1;
     lpf.h = generate_lpf(fs, lpf.fc, lpf.N);
-    lpf.group_delay = (lpf.N - 1) / 2;
+    lpf.group_delay_t = (lpf.N - 1) / (2 * fs);
 end
 
 function mf = mf_config(in, dec)

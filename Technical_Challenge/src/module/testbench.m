@@ -12,17 +12,11 @@ hold off;
 figure;
 hold on;
 plot_wave(model.signal, cfg.fs);
-plot_wave(decim.wave, cfg.dec.fs_dec, -cfg.lpf.group_delay/cfg.dec.D);
+plot_wave(decim.wave, cfg.dec.fs_dec, -cfg.lpf.group_delay_t);
 
-figure;
-hold on;
-plot_sof_schedule(model.schedule, cfg.fs);
-plot_wave(decim.wave, cfg.dec.fs_dec, -cfg.lpf.group_delay/cfg.dec.D);
-
-
-function plot_wave(wave, fs, sample_shift)
-    if nargin < 3 sample_shift = 0; end
-    t = ((0:length(wave)-1).' + sample_shift)/ fs;
+function plot_wave(wave, fs, t_shift)
+    if nargin < 3 t_shift = 0; end
+    t = ((0:length(wave)-1).')/ fs + t_shift;
     plot(t*1e3, real(wave));
     ylim([-1.5, 1.5]);
 end
