@@ -1,0 +1,6 @@
+cfg = default_config();
+[model_out.wave, model_out.signal, model_out.schedule] = generate_wave(cfg.radar, 20);
+[decim_out.wave, decim_out.N_filt] = aa_decimate(model_out.wave, cfg.decim);
+[mf_out.corr_up, mf_out.corr_down] = matched_filter(decim.wave, cfg.mf);
+diagnostics(cfg, model, decim, filter)
+

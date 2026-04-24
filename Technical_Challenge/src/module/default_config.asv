@@ -1,0 +1,62 @@
+function cfg = default_config()
+% SPEC CONSTANTS (DO NOT CHANGE)
+    fs = 100e6;
+    prf = 1e3;
+    T_up = 100e-6;
+    T_down = 200e-6;
+    f0 = 30e3;
+    f1 = 60e3;
+
+%SYSTEM PARAMS
+    fs_dec = 500e3; %
+    f_pass = 100e3; % passband for AA filter - set safely above the signal band at 60kHz
+
+%Load into cfg structs
+    cfg.fs = fs;
+    cfg.in = in_config(fs, prf, T_up, T_down, f0, f1);
+    cfg.decim = decim_config(cfg.in, fs_dec, f_pass);
+    cfg.mf = mf_config(cfg.in, cfg.decim);
+end
+
+function in = in_config(fs, prf, T_up, T_down, f0, f1)
+    in.fs           = fs;
+    in.prf          = prf;
+    in.f0 = f0;
+    in.f1 = f1;
+    in.T_up = T_up;
+    in.T_down = T_down;
+
+    in.pri_samples  = fs / prf;
+
+    in.wf(1) = generate_chirp('up', T_up, f0, f1, fs);
+    in.wf(2) = generate_chirp('down', T_down, f1, f0, fs);
+end
+
+function dec = decim_config(radar, fs_dec, f_pass)
+    dec.fs_dec = fs_dec;
+    dec.D = radar.fs / fs_dec
+end
+
+function lpf  
+
+function mf_cfg = mf_config(radar, decim)
+    mf_cfg.wf_up = generate_chirp('up (decimated)', radar.T_up, radar.f0, radar.f1, decim.fs_dec);
+    mf_cfg.wf_down = generate_chirp('down (decimated)', radar.T_down, radar.f1, radar.f0, decim.fs_dec);
+    mf_cfg.h_up = generate_template(mf_cfg.wf_up.iq);
+    mf_cfg.h_down = generate_template(mf_cfg.wf_down.iq);
+
+end
+
+function wf = generate_chirp(name, T, f0, f1, fs)
+    N = round(T * fs);
+    k = (f1 - f0) / T;
+    t = (0:N-1)/fs;
+    c = exp(1j*2*pi*(f0*t + 0.5*k*t.^2));
+    iq = c.';
+    wf = struct('name',name,'T',T,'N',N,'f0',f0,'f1',f1,'iq',iq);
+end
+
+function h = generate_template(iq)
+    h = conj(flip(iq));
+    h = h / sqrt(sum(abs(h).^2));
+end
