@@ -10,9 +10,9 @@ function cfg = default_config()
 %SYSTEM PARAMS
     fs_dec = 500e3; % decimated sample rate
     f_pass = 100e3; % passband for AA filter - set safely above the signal band at 60kHz
-    threshold_up; % detector threshold for up sweeps
-    threshold_down; % detector threshold for up sweeps
-    min_separation; % for region grouping
+    threshold_up = 40; % detector threshold for up sweeps
+    threshold_down = 40; % detector threshold for up sweeps
+    min_separation = 0; % for region grouping
 
 %Load into cfg structs
     cfg.fs = fs;
@@ -20,7 +20,7 @@ function cfg = default_config()
     cfg.lpf = lowpass_config(fs, f_pass, fs_dec);
     cfg.dec = decimator_config(fs, fs_dec);
     cfg.mf = matched_filter_config(T_up, T_down, f0, f1, fs_dec);
-    cfg.det = detector_config(up_threshold, down_threshold, mf.up.M, mf.down.M, min_separation);
+    cfg.det = detector_config(threshold_up, threshold_down, cfg.mf.up.delay_t + cfg.lpf.delay_t, cfg.mf.down.delay_t + cfg.lpf.delay_t, min_separation, fs_dec);
 end
 
 function in = input_config(fs, prf, T_up, T_down, f0, f1)
@@ -49,7 +49,7 @@ end
 
 function dec = decimator_config(fs, fs_dec)
     dec.fs_dec = fs_dec;
-    dec.D = fs / fs_dec;T_up, T_down, f0, f1
+    dec.D = fs / fs_dec;
 end
 
 
@@ -66,12 +66,12 @@ function mf = matched_filter_config(T_up, T_down, f0, f1, fs_dec)
     mf.down.delay_t = (mf.down.M - 1) / fs_dec;
 end
 
-function det = detector_config(up_threshold, down_threshold, up_M, down_M, min_separation)
+function det = detector_config(up_threshold, down_threshold, up_delay, down_delay, min_separation, fs_dec)
+    det.fs_dec = fs_dec;
     det.up.threshold = up_threshold;
-    det.up.M = up_M;
-
+    det.up.total_delay_t = up_delay;
     det.down.threshold = down_threshold;
-    det.down.M = down_M;
+    det.down.total_delay_t = down_delay;
 
     det.min_separation = min_separation;
 end
