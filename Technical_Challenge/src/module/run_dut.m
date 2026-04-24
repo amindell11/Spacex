@@ -51,7 +51,7 @@ function detections = detect(corr, sub_cfg, fs_dec, template)
     mag_sq = corr;
     valid_start = sub_cfg.total_delay_n + 1;
     valid_stop  = length(corr) - sub_cfg.N_tap + 1 + sub_cfg.total_delay_n;
-    noise_est = median(mag_sq(valid_start:min(valid_stop, end))) / log(2);
+    noise_est = median(mag_sq(valid_start:min(valid_stop, end))) / (-log(1 - 2^(-1/sub_cfg.K_bins)));
     thresh = sub_cfg.K * noise_est;
     above = mag_sq > thresh;
     above([1:valid_start-1, valid_stop+1:end]) = false;
@@ -72,7 +72,9 @@ function detections = detect(corr, sub_cfg, fs_dec, template)
         [peak_mag, rel_idx] = max(mag_sq(starts(i):stops(i)));
         peak_idx = starts(i) + rel_idx - 1;
 
-        detections(i).sof_idx = peak_idx - sub_cfg.total_delay_n;
+        offset = parabolic_offset(mag_sq, peak_idx);
+
+        detections(i).sof_idx = peak_idx - sub_cfg.total_delay_n + offset;
         detections(i).sof_time = (detections(i).sof_idx - 1) / fs_dec;
         detections(i).peak_mag = peak_mag;
         detections(i).template = template;
@@ -82,7 +84,7 @@ end
 
 function detections = extract_pulses(x, detections, ext_cfg)
     for i = 1:length(detections)
-        sof_idx = detections(i).sof_idx;
+        sof_idx = round(detections(i).sof_idx);
         start = sof_idx - ext_cfg.K;
         stop = sof_idx + detections(i).N_tap - 1 + ext_cfg.K;
         if start >= 1 && stop <= length(x)
@@ -90,5 +92,22 @@ function detections = extract_pulses(x, detections, ext_cfg)
         else
             detections(i).iq = [];
         end
+    end
+end
+
+function offset = parabolic_offset(y, k)
+    if k > 1 && k < length(y)
+        y_m1 = y(k - 1);
+        y_0  = y(k);
+        y_p1 = y(k + 1);
+        denom = y_m1 - 2*y_0 + y_p1;
+        if denom < 0
+            offset = 0.5 * (y_m1 - y_p1) / denom;
+            offset = max(-0.5, min(0.5, offset));
+        else
+            offset = 0;
+        end
+    else
+        offset = 0;
     end
 end
