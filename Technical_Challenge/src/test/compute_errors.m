@@ -5,36 +5,39 @@ end
 function [ma_errs] = match_detections(truth, det, tol)
     n_truth = length(truth);
     n_det = length(det);
-    n_pairs = 0;
-    n_missed = 0;
-    n_fa = 0;
-    pairs = zeros(n_truth,2);
-    missed = zeros(n_truth,1);
-    fa = zeros(n_det,1);
 
-    i=1; j=1;
-    while i <= n_truth && j <= n_det
-        dt = det(j).sof_time - truth(i).sof_time;
-        if (abs(dt) <= tol)
-            pairs(n_pairs + 1, :) = [i, j];
-            i=i+1; j=j+1; n_pairs = n_pairs + 1;
-        elseif dt < 0
-            fa(n_fa + 1) = j;
-            j=j+1; n_fa = n_fa + 1;
-        else
-             missed(n_missed + 1) = i;
-             i=i+1; n_missed = n_missed + 1;
+    truth_t = [truth.sof_time];
+    det_t   = [det.sof_time];
+
+    dt_mat = abs(det_t(:) - truth_t(:).');
+    dt_mat(dt_mat > tol) = inf;
+
+    pairs = zeros(n_truth, 1);
+    for i = 1:n_truth
+        [m, j] = min(dt_mat(:, i));
+        if isfinite(m)
+            pairs(i) = j;
+            dt_mat(j, :) = inf;
         end
     end
-    missed(n_missed + 1:end) = [];
-    fa(n_fa + 1:end) = [];
-    miss_rate = sum(n_missed) / sum(n_truth);
-    fa_rate = sum(n_fa) / sum(n_det);
+
+    matched = pairs > 0;
+    missed = find(~matched);
+    fa = setdiff((1:n_det).', pairs(matched));
+    dts = det_t(pairs(matched)) - truth_t(matched);
+    dts = reshape(dts, 1, []);
+
+    n_pairs = sum(matched);
+    n_missed = numel(missed);
+    n_fa = numel(fa);
+
+    miss_rate = n_missed / n_truth;
+    fa_rate   = n_fa / n_truth;
 
     ma_errs = struct( ...
         'miss_rate', miss_rate, 'fa_rate', fa_rate, ...
         'n_missed', n_missed, 'n_fa', n_fa,  'n_pairs', n_pairs, ...
         'n_truth', n_truth, 'n_det', n_det, ...
-        'missed', missed, 'fa', fa, ...
+        'missed', missed, 'fa', fa, 'dts', dts, ...
         'tol', tol);
-end 
+end

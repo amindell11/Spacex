@@ -30,6 +30,14 @@ ylabel('Error Rate (%)');
 title('Error Rates vs SNR');
 legend('Missed Detections', 'False Alarms');
 
+figure;
+hold on; grid on;
+rms_us = arrayfun(@(r) r.aggregates.ma_errs.dt_rms, results) * 1e6;
+plot([results.value], rms_us, 'o-');
+xlabel('SNR (dB)');
+ylabel('SOF RMS error (µs)');
+title('SOF Timing RMS Error vs SNR');
+
 fprintf('Running offset sweep...\n');
  setter = @(c, v) set_nested(c, {'sim','f_offset_Hz'}, v);
  results = trial_sweep(cfgs, setter, linspace(-15e3, 15e3, 10), 10);
@@ -44,6 +52,14 @@ xlabel('Frequency Offset (kHz)');
 ylabel('Error Rate (%)');
 title('Error Rates vs Frequency Offset');
 legend('Missed Detections', 'False Alarms');
+
+figure;
+hold on; grid on;
+rms_us = arrayfun(@(r) r.aggregates.ma_errs.dt_rms, results) * 1e6;
+plot([results.value]/1e3, rms_us, 'o-');
+xlabel('Frequency Offset (kHz)');
+ylabel('SOF RMS error (µs)');
+title('SOF Timing RMS Error vs Frequency Offset');
 
 figure;
 hold on; grid on;
