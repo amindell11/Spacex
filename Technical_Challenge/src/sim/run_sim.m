@@ -2,29 +2,31 @@
 % cfg: system config
 % SNR_dB: for added channel noise
 % returns generated wave, clean signal, and pulse schedule for debugging
-function [wave, signal, schedule] = generate_wave(cfg, SNR_dB)
-    schedule = build_pri_schedule(cfg, 2, true);
+function [wave, signal, schedule] = run_sim(spec, sim)
+    tx_up = spec.make_chirp('up', spec.fs);
+    tx_down = spec.make_chirp('down', spec.fs);
+    wf = [tx_up, tx_down];
+    schedule = build_pri_schedule(spec, wf, sim.up_first, sim.n_intervals);
     signal = generate_signal(schedule);
-    wave = channel(signal, length(signal), SNR_dB);
+    wave = channel(signal, length(signal), sim.SNR_dB);
 end
 
 % Build a schedule of pulses at configured PRF
 % n_intervals: schedule length in PRI's
 % wf_up: whether to start on an up pulse (will alternate after first)
 % returns schedule struct with .pulse(i) AoS and total sample length
-function schedule = build_pri_schedule(cfg, n_intervals, wf_up)
-    pulses = repmat(empty_pulse(cfg.wf(1)), n_intervals, 1);
-
+function schedule = build_pri_schedule(spec, wf, up_first, n_intervals)
+    pulses = repmat(empty_pulse(wf(1)), n_intervals, 1);
     for i = 1 : n_intervals
-        wf = cfg.wf(mod(i + wf_up, 2) + 1);
-        pulses(i).wf = wf;
-        pulses(i).template = wf.name;
-        pulses(i).sof_idx = randi(cfg.pri_samples - wf.N + 1) + (i-1) * cfg.pri_samples;
-        pulses(i).sof_time = (pulses(i).sof_idx - 1) / cfg.fs;
+        pulse = wf(mod(i + up_first, 2) + 1);
+        pulses(i).wf = pulse;
+        pulses(i).template = pulse.name;
+        pulses(i).sof_idx = randi(spec.pri_samples - pulse.N + 1) + (i-1) * spec.pri_samples;
+        pulses(i).sof_time = (pulses(i).sof_idx - 1) / spec.fs;
     end
 
     schedule.pulses = pulses;
-    schedule.N_samples = cfg.pri_samples * n_intervals;
+    schedule.N_samples = spec.pri_samples * n_intervals;
 end
 
 % Generate a clean rx signal from a specified pulse schedule
