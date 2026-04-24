@@ -3,7 +3,6 @@ function errs = compute_errors(truth, det, tol)
 end
 
 function [ma_errs] = match_detections(truth, det, tol)
-    % Match detections to truth within a tolerance
     n_truth = length(truth);
     n_det = length(det);
     n_pairs = 0;

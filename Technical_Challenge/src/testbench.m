@@ -8,15 +8,17 @@ fs = spec.fs;
 fs_dec = dut.dec.fs_dec;
 
 fprintf('Running tests...\n');
+out = trial_run(cfgs);
+
 [outs, agg] = trial_repeat(cfgs, 10);
 fprintf('Matched: %d / %d\n', agg.ma_errs.total_pairs, agg.ma_errs.total_truth);
 fprintf('Miss rate: %.2f%%\n', agg.ma_errs.missed_rate * 100);
 fprintf('False alarm rate: %.2f%%\n', agg.ma_errs.fa_rate * 100);
-out = outs(1);
+out = trial_run(cfgs);
 
 fprintf('Running sweep...\n');
  setter = @(c, v) set_nested(c, {'sim','SNR_dB'}, v);
- results = trial_sweep(cfgs, setter, linspace(50, -50, 200), 10);
+ results = trial_sweep(cfgs, setter, linspace(50, -50, 20), 3);
 
 hold on; grid on;
 miss = arrayfun(@(r) r.aggregates.ma_errs.missed_rate, results);
@@ -26,6 +28,21 @@ plot([results.value], miss*100, 'o-');plot([results.value], fa*100, 's-');
 xlabel('SNR (dB)');
 ylabel('Error Rate (%)');
 title('Error Rates vs SNR');
+legend('Missed Detections', 'False Alarms');
+
+fprintf('Running offset sweep...\n');
+ setter = @(c, v) set_nested(c, {'sim','f_offset_Hz'}, v);
+ results = trial_sweep(cfgs, setter, linspace(-15e3, 15e3, 10), 10);
+
+figure;
+hold on; grid on;
+miss = arrayfun(@(r) r.aggregates.ma_errs.missed_rate, results);
+fa = arrayfun(@(r) r.aggregates.ma_errs.fa_rate, results);
+plot([results.value]/1e3, miss*100, 'o-');plot([results.value]/1e3, fa*100, 's-');
+
+xlabel('Frequency Offset (kHz)');
+ylabel('Error Rate (%)');
+title('Error Rates vs Frequency Offset');
 legend('Missed Detections', 'False Alarms');
 
 figure;

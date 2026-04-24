@@ -8,6 +8,8 @@ function [wave, signal, schedule] = generate_wave(spec, cfg)
     wf = [tx_up, tx_down];
     schedule = build_pri_schedule(spec, wf, cfg.up_first, cfg.n_intervals);
     signal = generate_signal(schedule);
+    t = (0:length(signal)-1).' / spec.fs;
+    signal = signal .* exp(1j*2*pi*cfg.f_offset_Hz*t);
     wave = channel(signal, length(signal), cfg.SNR_dB);
 end
 

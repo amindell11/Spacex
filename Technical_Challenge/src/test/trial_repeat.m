@@ -1,7 +1,7 @@
 function [outs, aggregates] = trial_repeat(cfgs, n_trials)
     outs = repmat(struct('wave', [], 'signal', [], 'schedule', [], 'detections', [], 'debug', [], 'errs', []), 1, n_trials);
     for i = 1:n_trials
-        outs(i) = trial_run(cfgs);
+        outs(i).errs = trial_run(cfgs).errs;
     end
     aggregates = aggregate_trials(outs);
 end
