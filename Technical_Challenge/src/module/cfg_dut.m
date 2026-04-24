@@ -41,15 +41,18 @@ function dut = cfg_dut(spec)
     function det = build_det()
         det.fs_dec = fs_dec;
         samples_per_PRI_dec = spec.pri_samples / dec.D;
-        K_thresh = -log(P_fa / samples_per_PRI_dec);
+        K_up = size(mf.up.h, 2);
+        K_down = size(mf.down.h, 2);
 
-        det.up.K = K_thresh;
+        det.up.K = -log(P_fa / (samples_per_PRI_dec * K_up));
+        det.up.K_bins = K_up;
         det.up.total_delay_n = mf.up.delay_n + round(lpf.delay_n / dec.D);
         det.up.total_delay_t = mf.up.delay_t + lpf.delay_t;
         det.up.N_tap = mf.up.N_tap;
         det.up.min_separation = round(0.5 * samples_per_PRI_dec);
 
-        det.down.K = K_thresh;
+        det.down.K = -log(P_fa / (samples_per_PRI_dec * K_down));
+        det.down.K_bins = K_down;
         det.down.total_delay_n = mf.down.delay_n + round(lpf.delay_n / dec.D);
         det.down.total_delay_t = mf.down.delay_t + lpf.delay_t;
         det.down.N_tap = mf.down.N_tap;
