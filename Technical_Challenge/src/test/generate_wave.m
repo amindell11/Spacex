@@ -2,13 +2,13 @@
 % cfg: system config
 % SNR_dB: for added channel noise
 % returns generated wave, clean signal, and pulse schedule for debugging
-function [wave, signal, schedule] = run_sim(spec, sim)
+function [wave, signal, schedule] = generate_wave(spec, cfg)
     tx_up = spec.make_chirp('up', spec.fs);
     tx_down = spec.make_chirp('down', spec.fs);
     wf = [tx_up, tx_down];
-    schedule = build_pri_schedule(spec, wf, sim.up_first, sim.n_intervals);
+    schedule = build_pri_schedule(spec, wf, cfg.up_first, cfg.n_intervals);
     signal = generate_signal(schedule);
-    wave = channel(signal, length(signal), sim.SNR_dB);
+    wave = channel(signal, length(signal), cfg.SNR_dB);
 end
 
 % Build a schedule of pulses at configured PRF
