@@ -10,25 +10,6 @@ function [detections, dbg] = run_dut(wave, cfg)
     detections = extract_pulses(dbg.decim, detections, cfg.ext);
 end
 
-function dets = arbitrate(dets, arb_cfg)
-    if length(dets) <= 1, return; end
-    keep = true(length(dets), 1);
-    for i = 1:length(dets)-1
-        if ~keep(i), continue; end
-        for j = i+1:length(dets)
-            if ~keep(j), continue; end
-            if dets(j).sof_idx - dets(i).sof_idx > arb_cfg.window, break; end
-            if dets(i).peak_mag >= arb_cfg.ratio * dets(j).peak_mag
-                keep(j) = false;
-            elseif dets(j).peak_mag >= arb_cfg.ratio * dets(i).peak_mag
-                keep(i) = false;
-                break;
-            end
-        end
-    end
-    dets = dets(keep);
-end
-
 function y = lpf_decimate(x, lpf_cfg, dec_cfg)
     y = conv(x, lpf_cfg.h);
     y = y(1:dec_cfg.D:end);
@@ -75,23 +56,10 @@ function detections = detect(corr, sub_cfg, fs_dec, template)
         offset = parabolic_offset(mag_sq, peak_idx);
 
         detections(i).sof_idx = peak_idx - sub_cfg.total_delay_n + offset;
-        detections(i).sof_time = (detections(i).sof_idx - 1) / fs_dec;
+        detections(i).sof_time = (peak_idx + offset - 1) / fs_dec - sub_cfg.total_delay_t;
         detections(i).peak_mag = peak_mag;
         detections(i).template = template;
         detections(i).N_tap = sub_cfg.N_tap;
-    end
-end
-
-function detections = extract_pulses(x, detections, ext_cfg)
-    for i = 1:length(detections)
-        sof_idx = round(detections(i).sof_idx);
-        start = sof_idx - ext_cfg.K;
-        stop = sof_idx + detections(i).N_tap - 1 + ext_cfg.K;
-        if start >= 1 && stop <= length(x)
-            detections(i).iq = x(start:stop);
-        else
-            detections(i).iq = [];
-        end
     end
 end
 
@@ -111,3 +79,36 @@ function offset = parabolic_offset(y, k)
         offset = 0;
     end
 end
+
+function dets = arbitrate(dets, arb_cfg)
+    if length(dets) <= 1, return; end
+    keep = true(length(dets), 1);
+    for i = 1:length(dets)-1
+        if ~keep(i), continue; end
+        for j = i+1:length(dets)
+            if ~keep(j), continue; end
+            if dets(j).sof_idx - dets(i).sof_idx > arb_cfg.window, break; end
+            if dets(i).peak_mag >= arb_cfg.ratio * dets(j).peak_mag
+                keep(j) = false;
+            elseif dets(j).peak_mag >= arb_cfg.ratio * dets(i).peak_mag
+                keep(i) = false;
+                break;
+            end
+        end
+    end
+    dets = dets(keep);
+end
+
+function detections = extract_pulses(x, detections, ext_cfg)
+    for i = 1:length(detections)
+        sof_idx = round(detections(i).sof_idx);
+        start = sof_idx - ext_cfg.K;
+        stop = sof_idx + detections(i).N_tap - 1 + ext_cfg.K;
+        if start >= 1 && stop <= length(x)
+            detections(i).iq = x(start:stop);
+        else
+            detections(i).iq = [];
+        end
+    end
+end
+
